@@ -8,11 +8,12 @@ import dbConnect from "./Database/DbConnect.js";
 import AuthRoute from "./Routers/AuthRoutes.js";
 import ContactRoute from "./Routers/ContactusRoutes.js";
 import session from "express-session";
-import passport from "passport";
+import passport, { strategies } from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as LocalStrategy } from "passport-local";
 import UserModel from "./Models/AuthModel.js";
 import GoogleAuthRoute from "./Routers/GoogleAuthRoutes.js";
+import bcrypt from "bcrypt";
 
 const fileName = fileURLToPath(import.meta.url);
 const __dirName = dirname(fileName);
@@ -52,9 +53,12 @@ app.use(passport.session());
 
 // Configure Passport.js session serialization
 passport.serializeUser((user, done) => {
+  console.log("user " + user.id);
   done(null, user.id);
 });
+
 passport.deserializeUser(async (id, done) => {
+  console.log("id " + id);
   const user = await UserModel.findOne({ _id: id });
 
   if (user) {
@@ -117,43 +121,38 @@ passport.use(
 );
 
 passport.use(
-  new LocalStrategy(
-    { usernameField: "email", passwordField: "password" },
-    async (email, password, done) => {
-      try {
-        // Validation: Check if email and password are provided
-        if (!email || !password) {
-          return done(null, false, {
-            message: "Please provide all the required fields",
-          });
-        }
-
-        const emailExists = await UserModel.findOne({ Email: email });
-
-        if (emailExists) {
-          return done(null, false, {
-            message: "Email already exists",
-          });
-        }
-
-        if (!emailExists) {
-          return done(null, false, {
-            message: "Email does not exist. Please register first",
-          });
-        }
-
-        const hashPassword = bcrypt.compareSync(password, emailExists.Password);
-
-        if (emailExists.Email === email && hashPassword) {
-          return done(null, emailExists);
-        } else {
-          return done(null, false, { message: "Invalid Credentials" });
-        }
-      } catch (error) {
-        return done(error, false, { message: "Something went wrong" });
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      // Validation: Check if email and password are provided
+      if (!username || !password) {
+        return done(null, false, {
+          message: "Please provide all the required fields",
+        });
       }
+
+      const emailExists = await UserModel.findOne({ Email: username });
+
+      if (!emailExists) {
+        return done(null, false, {
+          message: "Email does not exist. Please register first",
+        });
+      }
+      console.log(password, emailExists.Email);
+
+      const hashPassword = bcrypt.compareSync(password, emailExists.Password);
+
+      console.log(hashPassword, emailExists.Email === username);
+
+      if (emailExists.Email === username && hashPassword) {
+        console.log("dekho");
+        return done(null, emailExists);
+      } else {
+        return done(null, false, { message: "Invalid Credentials" });
+      }
+    } catch (error) {
+      return done(error, false, { message: "Something went wrong" });
     }
-  )
+  })
 );
 
 app.use("/api", ServiceRoute);
