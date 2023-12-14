@@ -14,6 +14,8 @@ import { Strategy as LocalStrategy } from "passport-local";
 import UserModel from "./Models/AuthModel.js";
 import GoogleAuthRoute from "./Routers/GoogleAuthRoutes.js";
 import bcrypt from "bcrypt";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 
 const fileName = fileURLToPath(import.meta.url);
 const __dirName = dirname(fileName);
@@ -30,6 +32,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(cookieParser());
 
 app.set("trust proxy", 1);
 
@@ -37,7 +40,7 @@ app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSIONSECRET,
-    resave: true,
+    resave: false,
     saveUninitialized: true,
     cookie: {
       sameSite: "none", // Set to 'none' for cross-origin requests
@@ -160,25 +163,57 @@ app.use("/api", AuthRoute);
 app.use("/api", ContactRoute);
 app.use("/api", GoogleAuthRoute);
 
-// check Auth
-app.get("/api/auth/check", (req, res) => {
+// check auth
+app.get("/api/auth/check", async (req, res, next) => {
   try {
+    let token;
+
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+
+      if (!token) {
+        throw new Error("Token is not given");
+      }
+
+      const decoded = jwt.verify(token, "ROADJETSADMIN");
+
+      const checkAdmin = await UserModel.findOne({
+        _id: decoded.userId,
+      }).select("-password");
+
+      console.log(checkAdmin);
+
+      req.user = checkAdmin;
+
+      return res
+        .status(202)
+        .json({ status: true, user: req.user, message: "user is logged In" });
+    } else {
+      // Check if the user is authenticated when there is no Bearer token
+      if (req.isAuthenticated()) {
+        return res
+          .status(202)
+          .json({ status: true, user: req.user, message: "user is logged In" });
+      }
+
+      return res
+        .status(202)
+        .json({ status: true, user: req.user, message: "user is logged In" });
+    }
+  } catch (error) {
+    console.log(error);
+
+    // Check if the user is authenticated in case of JWT verification failure
     if (req.isAuthenticated()) {
       return res
         .status(202)
         .json({ status: true, user: req.user, message: "user is logged In" });
     }
 
-    return res
-      .status(401)
-      .json({ status: true, message: "user is not logged In" });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: false,
-      message: "something went wrong",
-      err: error,
-    });
+    return res.status(442).json({ message: "Invalid Auth" });
   }
 });
 

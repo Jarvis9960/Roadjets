@@ -4,6 +4,7 @@ import { signUp } from "../Controllers/AuthController.js";
 import { logout } from "../Controllers/GoogleAuthController.js";
 import { protectedRoute } from "../Middlewares/protectedRoute.js";
 import passport from "passport";
+import jwt from "jsonwebtoken";
 
 router.post("/signup", signUp);
 
@@ -25,11 +26,18 @@ router.post("/login", (req, res, next) => {
         return next(loginErr);
       }
 
-      console.log(req.isAuthenticated());
+      // Generate a JWT token
+      const token = jwt.sign({ userId: user.id }, "ROADJETSADMIN", {
+        expiresIn: "1h",
+      });
+
+      // Set the token as a cookie
+      res.cookie("jwtToken", token, { httpOnly: true, maxAge: 3600000 });
+
       return res.status(201).json({
         status: true,
         message: "Login Successfully",
-        user: req.user,
+        token: token,
       });
     });
   })(req, res, next);
