@@ -5,13 +5,13 @@ export const authenticate = passport.authenticate("google", {
 });
 
 export const authenticateCallback = passport.authenticate("google", {
-  failureRedirect: "http://127.0.0.1:5173/login",
+  failureRedirect: "https://www.roadjets.in/login",
   session: true,
 });
 
 export const redirectCallback = async (req, res) => {
   try {
-    res.redirect("http://127.0.0.1:5173");
+    res.redirect("https://www.roadjets.in");
   } catch (error) {
     console.log(error);
   }
