@@ -7,6 +7,7 @@ import path, { dirname } from "path";
 import dbConnect from "./Database/DbConnect.js";
 import AuthRoute from "./Routers/AuthRoutes.js";
 import ContactRoute from "./Routers/ContactusRoutes.js";
+import CouponRoute from "./Routers/CouponRoute.js";
 import session from "express-session";
 import passport, { strategies } from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
@@ -16,6 +17,7 @@ import GoogleAuthRoute from "./Routers/GoogleAuthRoutes.js";
 import bcrypt from "bcrypt";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
+import RouteTiming from "./Routers/RouteTimingRoutes.js"
 
 const fileName = fileURLToPath(import.meta.url);
 const __dirName = dirname(fileName);
@@ -32,6 +34,7 @@ app.use(
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "https://roadjets-jarvis9960.vercel.app",
+      "http://localhost:8080",
     ],
     credentials: true,
   })
@@ -48,7 +51,7 @@ app.use(
     saveUninitialized: true,
     cookie: {
       sameSite: "none", // Set to 'none' for cross-origin requests
-      secure: true, // Set to true if using HTTPS
+      secure: false, // Set to true if using HTTPS
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
@@ -166,9 +169,11 @@ app.use("/api", ServiceRoute);
 app.use("/api", AuthRoute);
 app.use("/api", ContactRoute);
 app.use("/api", GoogleAuthRoute);
+app.use("/api", CouponRoute);
+app.use("/api", RouteTiming);
 
 // check auth
-app.get("/api/auth/check", async (req, res, next) => {
+app.get("/api/auth/check", async (req, res) => {
   try {
     let token;
 
@@ -188,8 +193,6 @@ app.get("/api/auth/check", async (req, res, next) => {
         _id: decoded.userId,
       }).select("-password");
 
-      console.log(checkAdmin);
-
       req.user = checkAdmin;
 
       return res
@@ -198,14 +201,13 @@ app.get("/api/auth/check", async (req, res, next) => {
     } else {
       // Check if the user is authenticated when there is no Bearer token
       if (req.isAuthenticated()) {
+        console.log("this is running");
         return res
           .status(202)
           .json({ status: true, user: req.user, message: "user is logged In" });
       }
 
-      return res
-        .status(202)
-        .json({ status: true, user: req.user, message: "user is logged In" });
+      throw new Error("Invalid Auth");
     }
   } catch (error) {
     console.log(error);
