@@ -6,6 +6,7 @@ import crypto from "crypto";
 import axios from "axios";
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import { JWT } from "google-auth-library";
+import BookingModel from "../Models/BookingModel.js";
 
 const fileName = fileURLToPath(import.meta.url);
 const __dirName = dirname(fileName);
@@ -76,6 +77,7 @@ export const checkout = async (req, res) => {
       timings,
       route,
       passengerDetails,
+      bookingDate,
     } = req.body;
 
     if (
@@ -89,7 +91,8 @@ export const checkout = async (req, res) => {
       !dropLocation ||
       !timings ||
       !route ||
-      !passengerDetails
+      !passengerDetails ||
+      !bookingDate
     ) {
       return res.status(422).json({
         status: false,
@@ -113,6 +116,7 @@ export const checkout = async (req, res) => {
         timings: timings,
         route: route,
         passengerDetails: passengerDetailsJson,
+        bookingDate: bookingDate,
       },
     };
 
@@ -250,21 +254,11 @@ export const paymentVerification = async (req, res) => {
           "TIMINGS",
           "PHONE",
           "ROUTE",
-          "PASSENGER 1 NAME",
-          "PASSENGER 1 MOBILE",
-          "PASSENGER 2 NAME",
-          "PASSENGER 2 MOBILE",
-          "PASSENGER 3 NAME",
-          "PASSENGER 3 MOBILE",
-          "PASSENGER 4 NAME",
-          "PASSENGER 4 MOBILE",
+          "BOOKINGTIMINGS",
+          "PASSENGERLIST",
         ];
 
         await sheet.setHeaderRow(headers);
-
-        const passengerDetailsObj = JSON.parse(
-          orderObject[razorpay_order_id].orderData.notes?.passengerDetails
-        );
 
         const parameterObject = {
           1: orderObject[razorpay_order_id].orderData.notes?.name,
@@ -276,26 +270,8 @@ export const paymentVerification = async (req, res) => {
           7: orderObject[razorpay_order_id].orderData.notes?.timings,
           8: orderObject[razorpay_order_id].orderData.notes?.phone,
           9: orderObject[razorpay_order_id].orderData.notes?.route,
-          10: `${passengerDetailsObj[0].firstName} ${passengerDetailsObj[0].lastName}`,
-          11: passengerDetailsObj[0].mobile,
-          12: passengerDetailsObj[1]
-            ? `${passengerDetailsObj[1].firstName} ${passengerDetailsObj[1].lastName}`
-            : "Not available",
-          13: passengerDetailsObj[1]
-            ? passengerDetailsObj[1].mobile
-            : "Not available",
-          14: passengerDetailsObj[2]
-            ? `${passengerDetailsObj[2].firstName} ${passengerDetailsObj[2].lastName}`
-            : "Not available",
-          15: passengerDetailsObj[2]
-            ? passengerDetailsObj[2].mobile
-            : "Not available",
-          16: passengerDetailsObj[3]
-            ? `${passengerDetailsObj[3].firstName} ${passengerDetailsObj[3].lastName}`
-            : "Not available",
-          17: passengerDetailsObj[3]
-            ? passengerDetailsObj[3].mobile
-            : "Not available",
+          10: orderObject[razorpay_order_id].orderData.notes?.bookingDate,
+          11: orderObject[razorpay_order_id].orderData.notes?.passengerDetails,
         };
 
         const driverParameterObject = {
@@ -306,26 +282,8 @@ export const paymentVerification = async (req, res) => {
           5: orderObject[razorpay_order_id].orderData.notes?.pickUpLocations,
           6: orderObject[razorpay_order_id].orderData.notes?.dropLocation,
           7: orderObject[razorpay_order_id].orderData.notes?.timings,
-          8: `${passengerDetailsObj[0].firstName} ${passengerDetailsObj[0].lastName}`,
-          9: passengerDetailsObj[0].mobile,
-          10: passengerDetailsObj[1]
-            ? `${passengerDetailsObj[1].firstName} ${passengerDetailsObj[1].lastName}`
-            : "Not available",
-          11: passengerDetailsObj[1]
-            ? passengerDetailsObj[1].mobile
-            : "Not available",
-          12: passengerDetailsObj[2]
-            ? `${passengerDetailsObj[2].firstName} ${passengerDetailsObj[2].lastName}`
-            : "Not available",
-          13: passengerDetailsObj[2]
-            ? passengerDetailsObj[2].mobile
-            : "Not available",
-          14: passengerDetailsObj[3]
-            ? `${passengerDetailsObj[3].firstName} ${passengerDetailsObj[3].lastName}`
-            : "Not available",
-          15: passengerDetailsObj[3]
-            ? passengerDetailsObj[3].mobile
-            : "Not available",
+          8: orderObject[razorpay_order_id].orderData.notes?.bookingDate,
+          9: orderObject[razorpay_order_id].orderData.notes?.passengerDetails,
         };
 
         // Convert parameterObject values to an array based on the headers
@@ -336,29 +294,53 @@ export const paymentVerification = async (req, res) => {
         // Add data to the sheet
         await sheet.addRow(dataArray);
 
-        Promise.all([
-          sendBookingConfirmation(AdminPhone, parameterObject, "ADMIN"),
-          sendBookingConfirmation(
-            driverNumber,
-            driverParameterObject,
-            "DRIVER"
-          ),
-          sendBookingConfirmationUser(
-            orderObject[razorpay_order_id].orderData.notes?.phone
-          ),
-        ])
-          .then((responses) => {
-            delete orderObject[razorpay_order_id];
+        const passengerDetailsObj = JSON.parse(
+          orderObject[razorpay_order_id].orderData.notes?.passengerDetails
+        );
 
-            return res.redirect(
-              "http://localhost:8080/bookingcheckout?orderStatus=success"
-            );
-          })
-          .catch((error) => {
-            // Handle errors if any of the promises fail
-            console.error("Error sending messages:", error);
-            // Send your error response here
-          });
+        const bookDate = new Date(
+          orderObject[razorpay_order_id].orderData.notes?.bookingDate
+        );
+
+        const bookingDetailsObj = {
+          bookingDetails: parameterObject,
+          passengerList: passengerDetailsObj,
+        };
+
+        const savedBookingDetails = new BookingModel({
+          bookingDate: bookDate,
+          bookingDetails: bookingDetailsObj,
+        });
+
+        const response = await savedBookingDetails.save();
+
+        if (response) {
+          Promise.all([
+            sendBookingConfirmation(AdminPhone, parameterObject, "ADMIN"),
+            sendBookingConfirmation(
+              driverNumber,
+              driverParameterObject,
+              "DRIVER"
+            ),
+            sendBookingConfirmationUser(
+              orderObject[razorpay_order_id].orderData.notes?.phone
+            ),
+          ])
+            .then((responses) => {
+              delete orderObject[razorpay_order_id];
+
+              return res.redirect(
+                "http://localhost:8080?orderStatus=success"
+              );
+            })
+            .catch((error) => {
+              // Handle errors if any of the promises fail
+              console.error("Error sending messages:", error.response.data);
+              // Send your error response here
+            });
+        } else {
+          throw new Error("Error in database. Please contact administration");
+        }
       }
     } else {
       throw new Error("Booking Failed. Please try again");

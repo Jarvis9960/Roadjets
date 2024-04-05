@@ -17,7 +17,8 @@ import GoogleAuthRoute from "./Routers/GoogleAuthRoutes.js";
 import bcrypt from "bcrypt";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
-import RouteTiming from "./Routers/RouteTimingRoutes.js"
+import RouteTiming from "./Routers/RouteTimingRoutes.js";
+import TimingRoute from "./Routers/TimingRoute.js";
 
 const fileName = fileURLToPath(import.meta.url);
 const __dirName = dirname(fileName);
@@ -172,6 +173,7 @@ app.use("/api", ContactRoute);
 app.use("/api", GoogleAuthRoute);
 app.use("/api", CouponRoute);
 app.use("/api", RouteTiming);
+app.use("/api", TimingRoute);
 
 // check auth
 app.get("/api/auth/check", async (req, res) => {
