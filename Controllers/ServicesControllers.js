@@ -334,7 +334,7 @@ export const paymentVerification = async (req, res) => {
             .then((responses) => {
               delete orderObject[razorpay_order_id];
 
-              return res.redirect("http://localhost:8080?orderStatus=success");
+              return res.redirect("https://www.roadjets.in?orderStatus=success");
             })
             .catch((error) => {
               // Handle errors if any of the promises fail
