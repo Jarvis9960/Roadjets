@@ -20,8 +20,6 @@ const jsonData = JSON.parse(
   fs.readFileSync(path.resolve("Google_Crendential.json"), "utf-8")
 );
 
-console.log(jsonData);
-
 const client_email = jsonData.client_email;
 const private_key = jsonData.private_key;
 
@@ -146,38 +144,97 @@ const sendBookingConfirmation = async (recipient, parameterObject, user) => {
   try {
     let queryRecipient;
     if (user === "ADMIN") {
-      queryRecipient = "ride_confirm";
+      queryRecipient = "admin_confirm";
     } else {
       queryRecipient = "driver_template";
     }
+    // const response = await axios({
+    //   method: "post",
+    //   url: "https://graph.facebook.com/v18.0/208790375646910/messages",
+    //   headers: {
+    //     Authorization: `Bearer ${process.env.WHATSAPPTOKEN}`,
+    //     "Content-Type": "application/json",
+    //   },
+    //   data: {
+    //     messaging_product: "whatsapp",
+    //     to: recipient,
+    //     type: "template",
+    //     template: {
+    //       name: queryRecipient,
+    //       language: {
+    //         code: "en",
+    //       },
+    //       components: [
+    //         {
+    //           type: "BODY",
+    //           parameters: Object.entries(parameterObject).map(
+    //             ([key, value]) => ({
+    //               type: "TEXT",
+    //               text: value.toString(),
+    //             })
+    //           ),
+    //         },
+    //       ],
+    //     },
+    //   },
+    // });
+
     const response = await axios({
-      method: "post",
-      url: "https://graph.facebook.com/v18.0/208790375646910/messages",
-      headers: {
-        Authorization: `Bearer ${process.env.WHATSAPPTOKEN}`,
-        "Content-Type": "application/json",
-      },
+      method: "POST",
+      url: `https://live-mt-server.wati.io/309819/api/v1/sendTemplateMessage?whatsappNumber=${recipient}`,
       data: {
-        messaging_product: "whatsapp",
-        to: recipient,
-        type: "template",
-        template: {
-          name: queryRecipient,
-          language: {
-            code: "en",
+        template_name: "admin_msg",
+        broadcast_name: "Untitled_120420242244",
+        parameters: [
+          {
+            name: "1",
+            value: parameterObject[1],
           },
-          components: [
-            {
-              type: "BODY",
-              parameters: Object.entries(parameterObject).map(
-                ([key, value]) => ({
-                  type: "TEXT",
-                  text: value.toString(),
-                })
-              ),
-            },
-          ],
-        },
+          {
+            name: "2",
+            value: parameterObject[2],
+          },
+          {
+            name: "3",
+            value: parameterObject[3],
+          },
+          {
+            name: "4",
+            value: parameterObject[4],
+          },
+          {
+            name: "5",
+            value: parameterObject[5],
+          },
+          {
+            name: "6",
+            value: parameterObject[6],
+          },
+          {
+            name: "7",
+            value: parameterObject[7],
+          },
+          {
+            name: "8",
+            value: parameterObject[8],
+          },
+          {
+            name: "9",
+            value: parameterObject[9],
+          },
+          {
+            name: "10",
+            value: parameterObject[10],
+          },
+          {
+            name: "11",
+            value: parameterObject[11],
+          },
+        ],
+      },
+      headers: {
+        Authorization: `Bearer ${process.env.WATITOKEN}`,
+        "Content-Type": "application/json",
       },
     });
 
@@ -192,25 +249,52 @@ const sendBookingConfirmation = async (recipient, parameterObject, user) => {
   }
 };
 
-const sendBookingConfirmationUser = async (recipient) => {
+const sendBookingConfirmationUser = async (parameterObject, recipient) => {
   try {
+    // const response = await axios({
+    //   method: "post",
+    //   url: "https://graph.facebook.com/v18.0/208790375646910/messages",
+    //   headers: {
+    //     Authorization: `Bearer ${process.env.WHATSAPPTOKEN}`,
+    //     "Content-Type": "application/json",
+    //   },
+    //   data: {
+    //     messaging_product: "whatsapp",
+    //     to: recipient,
+    //     type: "template",
+    //     template: {
+    //       name: "user_template",
+    //       language: {
+    //         code: "en",
+    //       },
+    //     },
+    //   },
+    // });
+
     const response = await axios({
-      method: "post",
-      url: "https://graph.facebook.com/v18.0/208790375646910/messages",
-      headers: {
-        Authorization: `Bearer ${process.env.WHATSAPPTOKEN}`,
-        "Content-Type": "application/json",
-      },
+      method: "POST",
+      url: `https://live-mt-server.wati.io/309819/api/v1/sendTemplateMessage?whatsappNumber=${recipient}`,
       data: {
-        messaging_product: "whatsapp",
-        to: recipient,
-        type: "template",
-        template: {
-          name: "user_template",
-          language: {
-            code: "en",
+        template_name: "ride_confirm",
+        broadcast_name: "Untitled_120420242246",
+        parameters: [
+          {
+            name: "1",
+            value: parameterObject[1],
           },
-        },
+          {
+            name: "2",
+            value: parameterObject[2],
+          },
+          {
+            name: "3",
+            value: parameterObject[3],
+          },
+        ],
+      },
+      headers: {
+        Authorization: `Bearer ${process.env.WATITOKEN}`,
+        "Content-Type": "application/json",
       },
     });
 
@@ -291,6 +375,11 @@ export const paymentVerification = async (req, res) => {
           9: orderObject[razorpay_order_id].orderData.notes?.passengerDetails,
         };
 
+        const userParameterObject = {
+          1: orderObject[razorpay_order_id].orderData.notes?.pickUpLocations,
+          2: orderObject[razorpay_order_id].orderData.notes?.dropLocation,
+          3: AdminPhone,
+        };
         // Convert parameterObject values to an array based on the headers
         const dataArray = headers.map(
           (header) => parameterObject[headers.indexOf(header) + 1]
@@ -322,19 +411,22 @@ export const paymentVerification = async (req, res) => {
         if (response) {
           Promise.all([
             sendBookingConfirmation(AdminPhone, parameterObject, "ADMIN"),
-            sendBookingConfirmation(
-              driverNumber,
-              driverParameterObject,
-              "DRIVER"
-            ),
+            // sendBookingConfirmation(
+            //   driverNumber,
+            //   driverParameterObject,
+            //   "DRIVER"
+            // ),
             sendBookingConfirmationUser(
+              userParameterObject,
               orderObject[razorpay_order_id].orderData.notes?.phone
             ),
           ])
             .then((responses) => {
               delete orderObject[razorpay_order_id];
 
-              return res.redirect("https://www.roadjets.in?orderStatus=success");
+              return res.redirect(
+                "https://www.roadjets.in?orderStatus=success"
+              );
             })
             .catch((error) => {
               // Handle errors if any of the promises fail
