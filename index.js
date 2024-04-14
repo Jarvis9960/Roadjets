@@ -49,11 +49,11 @@ app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSIONSECRET,
-    resave: false,
+    resave: true,
     saveUninitialized: true,
     cookie: {
       sameSite: "none", // Set to 'none' for cross-origin requests
-      secure: false, // Set to true if using HTTPS
+      secure: true, // Set to true if using HTTPS
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
