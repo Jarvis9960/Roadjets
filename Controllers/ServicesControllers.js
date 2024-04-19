@@ -301,6 +301,7 @@ const sendBookingConfirmationUser = async (parameterObject, recipient) => {
     console.log(`Message sent to ${recipient}:`, response.data);
     return response.data; // Return the response data for Promise.all
   } catch (error) {
+    console.log(error)
     console.error(
       `Error sending message to ${recipient}:`,
       error.response ? error.response.data : error.message
@@ -430,6 +431,7 @@ export const paymentVerification = async (req, res) => {
             })
             .catch((error) => {
               // Handle errors if any of the promises fail
+              console.log(error)
               console.error("Error sending messages:", error.response.data);
               // Send your error response here
             });
