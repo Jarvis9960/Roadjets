@@ -226,7 +226,7 @@ app.get("/api/auth/check", async (req, res) => {
   }
 });
 
-const port = 3000;
+const port = 8080;
 app.listen(port, (req, res) => {
   console.log(`Server is listening to port ${port}`);
 });
