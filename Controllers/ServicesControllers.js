@@ -36,6 +36,9 @@ const doc = new GoogleSpreadsheet(
 
 var orderObject = {};
 
+console.log(process.env.RAZOR_KEY_ID);
+console.log(process.env.RAZOR_KEY_SECRET);
+
 let instance = new Razorpay({
   key_id: process.env.RAZOR_KEY_ID,
   key_secret: process.env.RAZOR_KEY_SECRET,
